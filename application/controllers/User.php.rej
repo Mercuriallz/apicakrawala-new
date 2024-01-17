@@ -1,0 +1,171 @@
+diff a/application/controllers/User.php b/application/controllers/User.php	(rejected hunks)
+@@ -307,11 +320,12 @@
+ 		}
+     }
+ 	
+-    private function isNIKExists($apiName, $nik, $deviceID) {
++    private function isNIKExists_ori($apiName, $nik, $deviceID) {
+         $q = $this->db->query("
+-        	SELECT users.employee_id, emp.first_name, emp.last_name, users.is_active, users.usertype_id, users.server_inv, users.project_id, users.areaid, users.areaid_extra1, users.device_id_one, users.device_id_two
++        	SELECT users.employee_id, emp.first_name, emp.last_name, users.is_active, pos.designation_name AS usertype_id, users.server_inv, users.project_id, users.areaid, users.areaid_extra1, users.areaid_extra2, users.device_id_one, users.device_id_two
+ 			FROM xin_user_mobile users
+ 			LEFT JOIN xin_employees emp ON emp.employee_id = users.employee_id
++			LEFT JOIN xin_designations pos ON pos.designation_id = emp.designation_id
+ 			WHERE users.employee_id = '$nik'");
+ 
+         $status = 1;
+@@ -456,6 +470,154 @@
+         ];
+     }
+ 
++    private function isNIKExists($apiName, $nik, $deviceID) {
++        $q = $this->db->query("
++        	SELECT employee_id, first_name, last_name, status_employee AS is_active, user_mobile_type AS usertype_id,server_inv,project_id,
++		areaid1 AS areaid, areaid2 AS areaid_extra1,areaid3 AS areaid_extra2,device_id_one,device_id_two
++		FROM xin_employees
++		WHERE employee_id = '$nik'");
++
++        $status = 1;
++        $employeeID = $fullname  = $serverEnv = $message = $typeId = null;
++
++        if ($q->num_rows() == 1) {
++            $rows = $q->row();
++
++            $message = "success";
++            $serverEnv = $rows->server_inv;
++            $isActive = $rows->is_active;
++			$employeeID = $rows->employee_id;
++            $fullname = $rows->first_name.' '.$rows->last_name;
++            $typeId = $rows->usertype_id;
++			$projectId = $rows->project_id;
++			$areaId = $rows->areaid;
++			$deviceid1 = $rows->device_id_one;
++			$deviceid2 = $rows->device_id_two;
++			$areaId_extra1 = $rows->areaid_extra1;
++			$areaId_extra2 = $rows->areaid_extra2;
++			// $officeLng = $rows->LNG;
++			// $shift = $rows->SHIFT_KERJA;
++			// $shiftName = $rows->SHIFT_NAME;
++			
++
++            if ($isActive != 1) {
++                $status = 0;
++                $message = "NIK anda tidak aktif, Hubungi admin untuk informasi lengkapnya.\n\nDevice ID: $deviceID";
++				$serverEnv = "";
++				$isActive = "";
++				$employeeID = "";
++				$fullname = "";
++				$typeId = "";
++				$projectId = "";
++				$areaId = "";
++				$areaId_extra1 = "";
++				$areaId_extra2 = "";
++				// $officeLoc = "";
++				// $officeLat = "";
++				// $officeLng = "";
++				// $shift = "";
++				// $shiftName = "";
++			
++            } 
++
++            if($deviceID != $deviceid1 && $deviceID != $deviceid2){
++
++                $status = 0;
++                $message = "Device ID anda tidak terdaftar, Hubungi admin untuk informasi lengkapnya.\n\nDevice ID: $deviceID";
++				$serverEnv = "";
++				$isActive = "";
++				$employeeID = "";
++				$fullname = "";
++				$typeId = "";
++				$projectId = "";
++				$areaId = "";
++				$areaId_extra1 = "";
++				$areaId_extra2 = "";
++				// $officeLoc = "";
++				// $officeLat = "";
++				// $officeLng = "";
++				// $shift = "";
++				// $shiftName = "";
++
++
++	            $sqllog = "INSERT INTO xin_login_log (nik, device_id) 
++	                    VALUES ('$nik', '$deviceID')";
++	            $result = $this->db->query($sqllog);
++
++            }
++
++
++	            if($rows->device_id_one==0 || $rows->device_id_one=="0"){
++
++		            $sqlupdevice = "UPDATE xin_user_mobile SET device_id_one = '$deviceID' WHERE employee_id = '$nik'";
++		            $result = $this->db->query($sqlupdevice);
++
++					$status = 9;
++		            $message = "success";
++		            $serverEnv = $rows->server_inv;
++		            $isActive = $rows->is_active;
++					$employeeID = $rows->employee_id;
++		            $fullname = $rows->first_name.' '.$rows->last_name;
++		            $typeId = $rows->usertype_id;
++					$projectId = $rows->project_id;
++					$areaId = $rows->areaid;
++					$deviceid1 = $rows->device_id_one;
++					$deviceid2 = $rows->device_id_two;
++					$areaId_extra1 = $rows->areaid_extra1;
++					$areaId_extra2 = $rows->areaid_extra2;
++
++		            $sqllog = "UPDATE xin_user_mobile SET device_id_one = '$deviceID' WHERE employee_id = '$nik'";
++		            $result = $this->db->query($sqllog);
++	            } 
++
++
++
++        } else if ($q->num_rows() > 1) {
++            $status = 0;
++            $message = "NIK anda terdaftar lebih dari 2 kali, Hubungi admin untuk informasi lengkapnya.\n\nDevice ID: $deviceID";
++			
++				$serverEnv = "";
++				$isActive = "";
++				$employeeID = "";
++				$fullname = "";
++				$typeId = "";
++				$projectId = "";
++				$areaId = "";
++				$areaId_extra1 = "";
++				$areaId_extra2 = "";
++				
++        } else {
++            $status = 0;
++            $message = "NIK anda tidak terdaftar, Hubungi admin untuk informasi lengkapnya.\n\nDevice ID: $deviceID";
++			
++				$serverEnv = "";
++				$isActive = "";
++				$employeeID = "";
++				$fullname = "";
++				$typeId = "";
++				$projectId = "";
++				$areaId = "";
++				$areaId_extra1 = "";
++				$areaId_extra2 = "";
++				
++        }
++      
++        return (object) [
++            'STATUS' => $status,
++            'MESSAGE' => $message,
++            'SERVER_ENV' => $serverEnv,
++            'EMPLOYEE_ID' => $employeeID,
++            'FULLNAME' => $fullname,
++            'TYPE_ID' => $typeId,
++            'PROJECT_ID' => $projectId,
++			'AREA_ID' => $areaId,
++			'AREA_ID_EXTRA1' => $areaId_extra1,
++			'AREA_ID_EXTRA2' => $areaId_extra2
++			// 'OFFICELNG' => $officeLng,
++			// 'SHIFT_KERJA' => $shift,
++			// 'SHIFT_NAME' => $shiftName
++        ];
++    }
+     private function isDeviceIDExists($apiName, $employeeID, $deviceID, $apkVersion) {
+ 
+         $q = $this->db->query("SELECT device_id_one, device_id_two 

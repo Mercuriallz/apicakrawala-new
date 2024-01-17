@@ -1,0 +1,39 @@
+<?php
+class Download extends CI_Controller {
+
+    protected $CI;
+
+    public function __construct() {
+        parent:: __construct();
+        $this->CI = & get_instance();
+        $this->CI->load->library('rest');
+        $this->CI->load->library('auth');
+        $this->CI->load->model('DownloadModel');
+    }
+
+
+    public function reason() {
+        $api = "apicakrawala/download/reason";
+        $jwt = $this->CI->auth->checkToken();
+        if ($jwt->STATUS == 1) {
+            $getReason = $this->CI->DownloadModel->getReason();
+            $this->CI->rest->output($getReason->STATUS, $getReason->MESSAGE, $getReason->DATA);
+        } else {
+            $this->CI->rest->output($jwt->STATUS, $jwt->MESSAGE, $jwt->DATA);
+        }
+    }
+	
+	public function city(){
+	
+	$myObj = new stdClass();
+$myObj->name = "John";
+$myObj->age = 30;
+$myObj->city = "New York";
+
+$myJSON = json_encode($myObj);
+
+echo $myJSON;
+
+	}
+
+}
